@@ -99,9 +99,3 @@ git clone https://github.com/NahomAnteneh/veco.git
 cd veco
 go build
 ```
-
-### Running tests
-
-```bash
-go test ./...
-```

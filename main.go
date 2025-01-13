@@ -97,6 +97,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get the command name from the first argument
+	// because the first argument is the command name
 	cmdName := os.Args[1]
 	cmd, exists := commands[cmdName]
 	if !exists {
