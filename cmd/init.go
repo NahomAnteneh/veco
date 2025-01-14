@@ -46,11 +46,7 @@ func CmdInit(args []string) error {
 		}
 	}
 
-	masterBranch := &core.Branch{
-		Name:      "master",
-		Commit:    "",
-		IsDefault: true,
-	}
+	masterBranch := repo.Branches[0]
 
 	if err := repo.CreateBranch(masterBranch); err != nil {
 		return fmt.Errorf("failed to create master branch %v", err)

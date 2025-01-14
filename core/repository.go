@@ -9,32 +9,16 @@ import (
 	"github.com/NahomAnteneh/veco/utils"
 )
 
+type FileMode uint16
+
 type Repository struct {
 	RootPath string
 	VecoPath string
-}
-
-type Commit struct {
-	CommitHash string
-	Tree       Tree
-	Message    string
-	Parent     string
-	Timestamp  time.Time
-	Author     string
-	Commiter   string
-}
-
-type Tree struct {
-	Mode     int
-	Type     string
-	Hash     string
-	FileName string
-}
-
-type Branch struct {
-	Name      string
-	Commit    string
-	IsDefault bool
+	Branches []*Branch
+	Remotes  []*Remote
+	Index    *Index
+	Head     *Head
+	Objects  *ObjectStore
 }
 
 type Head struct {
@@ -45,6 +29,26 @@ func NewRepository(rootPath string) *Repository {
 	return &Repository{
 		RootPath: rootPath,
 		VecoPath: filepath.Join(rootPath, utils.VecoDir),
+		Index:    &Index{}, // Initialize the Index field
+		Branches: []*Branch{
+			{
+				Name:           "master",
+				Commit:         &Commit{},
+				IsDefault:      true,
+				RemoteName:     "",
+				TrackingBranch: "",
+				IsLocal:        true,
+				IsRemote:       false,
+				IsMerged:       false,
+				CreationDate:   time.Now(),
+				LastUpdated:    time.Now(),
+			},
+		},
+		Remotes: []*Remote{},
+		Head: &Head{
+			Ref: "refs/heads/master",
+		},
+		Objects: nil,
 	}
 }
 
@@ -54,13 +58,11 @@ func (r *Repository) IsInitialized() bool {
 }
 
 func (r *Repository) CreateBranch(branch *Branch) error {
-	if branch.IsDefault {
-		if err := r.UpdateHead(&Head{Ref: fmt.Sprintf("refs/heads/%s", branch.Name)}); err != nil {
-			return fmt.Errorf("failed to create branch %s: %v", branch.Name, err)
-		}
+	if branch.Exists(r) {
+		return fmt.Errorf("branch %s already exists", branch.Name)
 	} else {
 		branchPath := filepath.Join(r.VecoPath, utils.RefsDir, utils.HeadsDir, branch.Name)
-		if err := os.WriteFile(branchPath, []byte(branch.Commit), 0644); err != nil {
+		if err := os.WriteFile(branchPath, []byte(branch.Commit.Hash()), 0644); err != nil {
 			return fmt.Errorf("failed to create branch %s: %v", branch.Name, err)
 		}
 	}
@@ -73,4 +75,9 @@ func (r *Repository) UpdateHead(head *Head) error {
 		return fmt.Errorf("failed to update HEAD: %v", err)
 	}
 	return nil
+}
+
+func (r *Repository) SaveBlob(blob *Blob) error {
+	blobPath := filepath.Join(r.VecoPath, utils.ObjectsDir, blob.Hash()[:2], blob.Hash()[2:])
+	return os.WriteFile(blobPath, blob.Content, 0644)
 }
